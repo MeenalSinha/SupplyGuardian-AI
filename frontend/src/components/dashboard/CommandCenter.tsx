@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Play, CheckCircle, ShieldAlert, DollarSign, Activity, FileText, AlertTriangle, RotateCcw } from 'lucide-react'
 
-// ─── Types matching the backend response schema ───────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TraceEvent {
   timestamp: string
@@ -54,20 +54,19 @@ interface WorkflowResult {
 
 type DemoPhase = 'idle' | 'loading' | 'done' | 'approved' | 'error'
 
-// ─── Helper: format currency ──────────────────────────────────────────────────
 const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 const fmtUnit = (n: number) => `$${n.toFixed(2)}`
 
-// ─── Agent color map ──────────────────────────────────────────────────────────
-const agentColor = (agent: string) => {
-  if (agent.includes('Planner') || agent === 'System') return 'text-blue-400'
-  if (agent.includes('Research') || agent.includes('Supplier')) return 'text-purple-400'
-  if (agent.includes('Risk') || agent.includes('Compliance')) return 'text-red-400'
-  if (agent.includes('Negotiation')) return 'text-green-400'
-  if (agent.includes('Policy')) return 'text-yellow-400'
-  if (agent.includes('Approval')) return 'text-orange-400'
-  if (agent.includes('UiPath')) return 'text-indigo-400'
-  return 'text-gray-400'
+// Agent label → brand color variable
+const agentColor = (agent: string): string => {
+  if (agent.includes('Planner') || agent === 'System') return 'var(--brand-gold)'
+  if (agent.includes('Research') || agent.includes('Supplier')) return '#A78BFA'
+  if (agent.includes('Risk') || agent.includes('Compliance')) return 'var(--brand-red)'
+  if (agent.includes('Negotiation')) return 'var(--brand-green)'
+  if (agent.includes('Policy')) return 'var(--brand-amber)'
+  if (agent.includes('Approval')) return '#FB923C'
+  if (agent.includes('UiPath')) return '#818CF8'
+  return 'var(--brand-text-muted)'
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -80,21 +79,15 @@ export default function CommandCenter() {
   const traceRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Animate trace events appearing one-by-one from real backend data
   useEffect(() => {
     if (phase === 'done' && result && visibleTraceCount < result.execution_trace.length) {
-      timerRef.current = setTimeout(() => {
-        setVisibleTraceCount(c => c + 1)
-      }, 300)
+      timerRef.current = setTimeout(() => setVisibleTraceCount(c => c + 1), 300)
     }
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [phase, result, visibleTraceCount])
 
-  // Auto-scroll trace panel
   useEffect(() => {
-    if (traceRef.current) {
-      traceRef.current.scrollTop = traceRef.current.scrollHeight
-    }
+    if (traceRef.current) traceRef.current.scrollTop = traceRef.current.scrollHeight
   }, [visibleTraceCount])
 
   const startDemo = async () => {
@@ -102,124 +95,113 @@ export default function CommandCenter() {
     setResult(null)
     setErrorMsg('')
     setVisibleTraceCount(0)
-
     try {
       const response = await fetch(`${BACKEND_URL}/api/v1/agents/workflow/full-procurement`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          item: 'lithium-ion battery cells',
-          quantity: 10000,
-          estimated_value: 510000.0,
-        }),
+        body: JSON.stringify({ item: 'lithium-ion battery cells', quantity: 10000, estimated_value: 510000.0 }),
       })
-
-      if (!response.ok) {
-        const err = await response.text()
-        throw new Error(`Backend returned ${response.status}: ${err}`)
-      }
-
+      if (!response.ok) throw new Error(`Backend returned ${response.status}: ${await response.text()}`)
       const data: WorkflowResult = await response.json()
       setResult(data)
       setPhase('done')
     } catch (err: any) {
-      console.error('Workflow API error:', err)
       setErrorMsg(err.message || 'Failed to connect to the SupplyGuardian backend.')
       setPhase('error')
     }
   }
 
-  const handleApprove = () => {
-    setPhase('approved')
-  }
+  const handleApprove = () => setPhase('approved')
+  const reset = () => { setPhase('idle'); setResult(null); setErrorMsg(''); setVisibleTraceCount(0) }
 
-  const reset = () => {
-    setPhase('idle')
-    setResult(null)
-    setErrorMsg('')
-    setVisibleTraceCount(0)
-  }
-
-  // ── Derived data from real API response ──────────────────────────────────
   const negotiation = result?.steps?.negotiation
   const discovery = result?.steps?.discovery
   const blocked = result?.blocked_suppliers ?? []
   const topSupplier = result?.top_supplier
-
   const initialTotal = negotiation?.total_initial ?? result?.initial_estimated_value ?? 0
   const negotiatedTotal = negotiation?.total_negotiated ?? result?.negotiated_total ?? 0
   const totalSavings = negotiation?.total_savings ?? result?.total_savings ?? 0
   const counterPrice = negotiation?.counter_price ?? 0
   const formula = negotiation?.formula ?? ''
   const initialUnitPrice = counterPrice > 0 ? (initialTotal / (result?.quantity ?? 1)) : 0
-
   const visibleTrace = result?.execution_trace.slice(0, visibleTraceCount) ?? []
   const approvalRequired = result?.approval_required ?? false
-
-  // ── Pending approvals counter (dynamic) ──────────────────────────────────
-  const pendingApprovals = (phase === 'done' && approvalRequired && phase !== 'approved') ? 1 : 0
+  const pendingApprovals = (phase === 'done' && approvalRequired) ? 1 : 0
 
   return (
-    <div className="space-y-6">
-      {/* ── Header KPIs ───────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">SupplyGuardian AI</h1>
-          <p className="text-gray-400 mt-1">Autonomous Procurement Control Tower</p>
+    <div className="space-y-4">
+      {/* ── Section divider ──────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--brand-gold)' }} />
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--brand-text-muted)' }}>
+            Agent Command Center
+          </span>
         </div>
-        <div className="flex gap-6 mt-4 md:mt-0">
+        <div className="flex-1 h-px" style={{ background: 'var(--brand-border)' }} />
+      </div>
+
+      {/* ── Header KPI strip ─────────────────────────────────────────────────── */}
+      <div className="sg-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="text-base font-bold" style={{ color: 'var(--brand-text)' }}>SupplyGuardian AI</div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--brand-text-dim)' }}>Autonomous Procurement Control Tower</div>
+        </div>
+        <div className="flex gap-6">
           {[
-            { label: 'Active Cases', value: '4', color: 'text-white' },
-            { label: 'Automation Rate', value: '87%', color: 'text-green-400' },
-            { label: 'Savings MTD', value: '$240K', color: 'text-yellow-400' },
-            { label: 'At-Risk Suppliers', value: blocked.length > 0 ? String(blocked.length) : '1', color: 'text-red-400' },
-            { label: 'Pending Approvals', value: String(pendingApprovals), color: 'text-blue-400' },
+            { label: 'Active Cases',       value: '4',                                             color: 'var(--brand-text)' },
+            { label: 'Automation Rate',    value: '87%',                                           color: 'var(--brand-green)' },
+            { label: 'Savings MTD',        value: '$240K',                                         color: 'var(--brand-gold)' },
+            { label: 'At-Risk Suppliers',  value: blocked.length > 0 ? String(blocked.length) : '1', color: 'var(--brand-red)' },
+            { label: 'Pending Approvals',  value: String(pendingApprovals),                        color: 'var(--brand-amber)' },
           ].map(k => (
             <div key={k.label} className="text-center">
-              <p className={`text-2xl font-black ${k.color}`}>{k.value}</p>
-              <p className="text-xs text-gray-400 font-medium">{k.label}</p>
+              <div className="text-xl font-black" style={{ color: k.color }}>{k.value}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--brand-text-dim)' }}>{k.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Main Grid ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ── Main grid ────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* CENTER: Procurement Form / Active Run / Results ─────────────────── */}
-        <div className="lg:col-span-2 bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl overflow-hidden">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-blue-400" />
+        {/* CENTER: Form / Results */}
+        <div className="lg:col-span-2 sg-card overflow-hidden">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--brand-text)' }}>
+              <Activity className="w-4 h-4" style={{ color: 'var(--brand-gold)' }} />
               {phase === 'idle' ? 'New Procurement' : 'Active Agent Run'}
             </h2>
             <div className="flex items-center gap-3">
               {phase === 'loading' && (
-                <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold animate-pulse"
+                  style={{ background: 'rgba(201,168,76,0.12)', color: 'var(--brand-gold)', border: '1px solid rgba(201,168,76,0.2)' }}>
                   Strands SDK Running
                 </span>
               )}
               {(phase === 'done' || phase === 'approved' || phase === 'error') && (
-                <button onClick={reset} className="text-gray-500 hover:text-gray-300 flex items-center gap-1 text-xs">
+                <button onClick={reset} className="flex items-center gap-1 text-xs transition-colors"
+                  style={{ color: 'var(--brand-text-dim)' }}>
                   <RotateCcw className="w-3 h-3" /> Reset
                 </button>
               )}
             </div>
           </div>
 
-          {/* IDLE: procurement form */}
+          {/* IDLE */}
           {phase === 'idle' && (
-            <div className="bg-gray-950/50 rounded-xl p-5 border border-gray-800/50">
+            <div className="rounded-xl p-5" style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}>
               <div className="grid grid-cols-2 gap-4 mb-5">
                 {[
                   { label: 'What do you need?', value: 'Lithium-ion battery cells' },
-                  { label: 'Quantity', value: '10,000 units' },
-                  { label: 'Max Budget', value: '$500,000' },
-                  { label: 'Required Within', value: '30 Days' },
+                  { label: 'Quantity',           value: '10,000 units' },
+                  { label: 'Max Budget',         value: '$500,000' },
+                  { label: 'Required Within',    value: '30 Days' },
                 ].map(f => (
                   <div key={f.label}>
-                    <label className="block text-xs text-gray-400 mb-1">{f.label}</label>
-                    <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-white text-sm">
+                    <label className="block text-xs mb-1" style={{ color: 'var(--brand-text-muted)' }}>{f.label}</label>
+                    <div className="w-full rounded-lg p-2 text-sm" style={{ background: 'var(--brand-surface)', border: '1px solid var(--brand-border)', color: 'var(--brand-text)' }}>
                       {f.value}
                     </div>
                   </div>
@@ -227,91 +209,84 @@ export default function CommandCenter() {
               </div>
               <button
                 onClick={startDemo}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                className="w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'linear-gradient(135deg, var(--brand-gold) 0%, var(--brand-gold-light) 100%)', color: 'var(--brand-carbon)' }}
               >
-                <Play className="w-5 h-5" />
+                <Play className="w-4 h-4" />
                 START AGENT — Judge Mode Demo
               </button>
-              <p className="text-xs text-gray-600 text-center mt-3">
+              <p className="text-xs text-center mt-3" style={{ color: 'var(--brand-text-dim)' }}>
                 Calls the real backend • Real tool functions • Real calculations
               </p>
             </div>
           )}
 
-          {/* LOADING: spinner while API runs */}
+          {/* LOADING */}
           {phase === 'loading' && (
-            <div className="bg-gray-950/50 rounded-xl p-10 border border-gray-800/50 flex flex-col items-center justify-center">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-white font-semibold">Strands agents executing…</p>
-              <p className="text-gray-500 text-sm mt-1">Calling backend at {BACKEND_URL}</p>
+            <div className="rounded-xl p-10 flex flex-col items-center justify-center" style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}>
+              <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin mb-4" style={{ borderColor: 'var(--brand-gold)', borderTopColor: 'transparent' }} />
+              <p className="font-semibold text-sm" style={{ color: 'var(--brand-text)' }}>Strands agents executing…</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--brand-text-dim)' }}>Calling backend at {BACKEND_URL}</p>
             </div>
           )}
 
-          {/* ERROR: backend not reachable */}
+          {/* ERROR */}
           {phase === 'error' && (
-            <div className="bg-red-950/30 rounded-xl p-6 border border-red-800/50">
+            <div className="rounded-xl p-5" style={{ background: 'rgba(212,90,74,0.06)', border: '1px solid rgba(212,90,74,0.25)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-                <p className="text-red-400 font-semibold">Backend Connection Failed</p>
+                <AlertTriangle className="w-4 h-4" style={{ color: 'var(--brand-red)' }} />
+                <p className="font-semibold text-sm" style={{ color: 'var(--brand-red)' }}>Backend Connection Failed</p>
               </div>
-              <p className="text-gray-400 text-sm mb-4">{errorMsg}</p>
-              <div className="bg-gray-900 rounded-lg p-3 text-xs text-gray-500 font-mono mb-4">
+              <p className="text-sm mb-4" style={{ color: 'var(--brand-text-muted)' }}>{errorMsg}</p>
+              <div className="rounded-lg p-3 text-xs font-mono mb-4" style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)', color: 'var(--brand-text-muted)' }}>
                 Make sure the backend is running:<br />
-                <span className="text-gray-300">cd backend && uvicorn app.main:app --reload</span>
+                <span style={{ color: 'var(--brand-text)' }}>cd backend && uvicorn app.main:app --reload</span>
               </div>
-              <button onClick={reset} className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
+              <button onClick={reset} className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                style={{ background: 'var(--brand-surface-light)', border: '1px solid var(--brand-border)', color: 'var(--brand-text)' }}>
                 Try Again
               </button>
             </div>
           )}
 
-          {/* DONE / APPROVED: real results from backend */}
+          {/* DONE / APPROVED */}
           {(phase === 'done' || phase === 'approved') && result && (
-            <div className="bg-gray-950/50 rounded-xl p-5 border border-gray-800/50 space-y-5">
+            <div className="rounded-xl p-5 space-y-5" style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}>
               <div>
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Execution Summary</h3>
-                <p className="text-gray-200 text-sm">
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--brand-text-muted)' }}>Execution Summary</div>
+                <p className="text-sm" style={{ color: 'var(--brand-text)' }}>
                   Goal: Procure {result.quantity.toLocaleString()} × {result.item} within 30 days.
                 </p>
               </div>
 
-              {/* Supplier shortlist from real tool output */}
+              {/* Supplier candidates */}
               {discovery?.candidates && (
                 <div>
-                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                  <div className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--brand-text-dim)' }}>
                     Candidates Found ({discovery.total_found})
-                  </h4>
+                  </div>
                   <div className="space-y-2">
                     {discovery.candidates.map((c, i) => {
                       const isBlocked = blocked.some(b => b.supplier === c.name)
                       const isTop = topSupplier?.name === c.name
                       return (
-                        <div
-                          key={c.name}
-                          className={`flex items-center justify-between rounded-lg p-3 border text-sm ${
-                            isBlocked
-                              ? 'bg-red-950/20 border-red-800/40 opacity-60'
-                              : isTop
-                              ? 'bg-green-950/20 border-green-700/40'
-                              : 'bg-gray-900/50 border-gray-800/50'
-                          }`}
-                        >
+                        <div key={c.name} className="flex items-center justify-between rounded-lg p-3 text-sm" style={{
+                          background: isBlocked ? 'rgba(212,90,74,0.06)' : isTop ? 'rgba(141,197,74,0.06)' : 'var(--brand-surface)',
+                          border: `1px solid ${isBlocked ? 'rgba(212,90,74,0.2)' : isTop ? 'rgba(141,197,74,0.25)' : 'var(--brand-border)'}`,
+                          opacity: isBlocked ? 0.7 : 1,
+                        }}>
                           <div className="flex items-center gap-3">
-                            <span className="text-gray-500 w-4">{i + 1}.</span>
+                            <span style={{ color: 'var(--brand-text-dim)', width: 16 }}>{i + 1}.</span>
                             <div>
-                              <span className={`font-medium ${isTop ? 'text-green-400' : 'text-gray-200'}`}>{c.name}</span>
-                              <span className="text-gray-500 text-xs ml-2">{c.country}</span>
+                              <span className="font-medium" style={{ color: isTop ? 'var(--brand-green)' : 'var(--brand-text)' }}>{c.name}</span>
+                              <span className="text-xs ml-2" style={{ color: 'var(--brand-text-dim)' }}>{c.country}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs">
-                            <span className="text-gray-400">{fmtUnit(c.price_estimate)}/unit</span>
-                            <span className="text-gray-400">{c.on_time_delivery_pct}% OTD</span>
-                            {isBlocked && (
-                              <span className="text-red-400 font-semibold bg-red-900/30 px-2 py-0.5 rounded">BLOCKED</span>
-                            )}
-                            {isTop && (
-                              <span className="text-green-400 font-semibold bg-green-900/30 px-2 py-0.5 rounded">SELECTED</span>
-                            )}
+                          <div className="flex items-center gap-3 text-xs">
+                            <span style={{ color: 'var(--brand-text-muted)' }}>{fmtUnit(c.price_estimate)}/unit</span>
+                            <span style={{ color: 'var(--brand-text-muted)' }}>{c.on_time_delivery_pct}% OTD</span>
+                            {isBlocked && <span className="chip chip-red">BLOCKED</span>}
+                            {isTop && <span className="chip chip-green">SELECTED</span>}
                           </div>
                         </div>
                       )
@@ -320,42 +295,39 @@ export default function CommandCenter() {
                 </div>
               )}
 
-              {/* Calculated savings breakdown */}
+              {/* Negotiation result */}
               {negotiation && (
                 <div>
-                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2">Negotiation Result</h4>
-                  <div className="bg-gray-900 rounded-lg p-4 border border-gray-800 space-y-2 text-sm">
+                  <div className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--brand-text-dim)' }}>Negotiation Result</div>
+                  <div className="rounded-lg p-4 space-y-2 text-sm" style={{ background: 'var(--brand-surface)', border: '1px solid var(--brand-border)' }}>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Initial Quote</span>
-                      <span className="text-gray-300">
-                        {result.quantity.toLocaleString()} × {fmtUnit(initialUnitPrice)} = {fmt(initialTotal)}
-                      </span>
+                      <span style={{ color: 'var(--brand-text-muted)' }}>Initial Quote</span>
+                      <span style={{ color: 'var(--brand-text)' }}>{result.quantity.toLocaleString()} × {fmtUnit(initialUnitPrice)} = {fmt(initialTotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Negotiated Price</span>
-                      <span className="text-gray-300">
-                        {result.quantity.toLocaleString()} × {fmtUnit(counterPrice)} = {fmt(negotiatedTotal)}
-                      </span>
+                      <span style={{ color: 'var(--brand-text-muted)' }}>Negotiated Price</span>
+                      <span style={{ color: 'var(--brand-text)' }}>{result.quantity.toLocaleString()} × {fmtUnit(counterPrice)} = {fmt(negotiatedTotal)}</span>
                     </div>
                     {formula && (
-                      <div className="text-xs text-gray-600 font-mono border-t border-gray-800 pt-2 mt-1">
+                      <div className="text-xs font-mono pt-2 mt-1" style={{ borderTop: '1px solid var(--brand-border)', color: 'var(--brand-text-dim)' }}>
                         Formula: {formula}
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-gray-800 pt-2 mt-1">
-                      <span className="text-yellow-400 font-semibold">Total Savings</span>
-                      <span className="text-yellow-400 font-bold">{fmt(totalSavings)}</span>
+                    <div className="flex justify-between pt-2 mt-1" style={{ borderTop: '1px solid var(--brand-border)' }}>
+                      <span className="font-semibold" style={{ color: 'var(--brand-gold)' }}>Total Savings</span>
+                      <span className="font-bold" style={{ color: 'var(--brand-gold)' }}>{fmt(totalSavings)}</span>
                     </div>
                   </div>
                 </div>
               )}
 
               {phase === 'approved' && (
-                <div className="flex items-center gap-2 bg-green-900/20 border border-green-700/30 rounded-lg p-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
+                <div className="flex items-center gap-2 rounded-lg p-3"
+                  style={{ background: 'rgba(141,197,74,0.08)', border: '1px solid rgba(141,197,74,0.2)' }}>
+                  <CheckCircle className="w-4 h-4" style={{ color: 'var(--brand-green)' }} />
                   <div>
-                    <p className="text-green-400 font-semibold text-sm">Approved — Simulated UiPath Execution</p>
-                    <p className="text-gray-500 text-xs">
+                    <p className="font-semibold text-sm" style={{ color: 'var(--brand-green)' }}>Approved — Simulated UiPath Execution</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--brand-text-dim)' }}>
                       In production, UiPath Maestro would now orchestrate PO generation in ERP.
                     </p>
                   </div>
@@ -365,80 +337,70 @@ export default function CommandCenter() {
           )}
         </div>
 
-        {/* RIGHT: Next Human Action ──────────────────────────────────────── */}
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl flex flex-col">
-          <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-yellow-500" />
+        {/* RIGHT: Next Human Action */}
+        <div className="sg-card flex flex-col">
+          <h2 className="text-sm font-bold flex items-center gap-2 mb-5" style={{ color: 'var(--brand-text)' }}>
+            <ShieldAlert className="w-4 h-4" style={{ color: 'var(--brand-gold)' }} />
             Next Human Action
           </h2>
 
           {phase === 'done' && approvalRequired && result ? (
-            <div className="flex-1 bg-gray-800/50 rounded-xl p-5 border border-yellow-500/20">
-              <span className="bg-yellow-500/20 text-yellow-500 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">
-                Approval Required
-              </span>
-              <h3 className="text-lg font-bold text-white leading-tight mt-3">Approve Purchase</h3>
-              <p className="text-gray-400 text-sm mt-1">
+            <div className="flex-1 rounded-xl p-4" style={{ background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.2)' }}>
+              <span className="chip chip-gold text-xs">Approval Required</span>
+              <h3 className="text-base font-bold mt-3 mb-1" style={{ color: 'var(--brand-text)' }}>Approve Purchase</h3>
+              <p className="text-xs mb-4" style={{ color: 'var(--brand-text-muted)' }}>
                 Strands Negotiator recommends {topSupplier?.name || 'selected supplier'}.
               </p>
 
-              <div className="my-5 space-y-3 bg-gray-900 rounded-lg p-4 border border-gray-700/50 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Supplier</span>
-                  <span className="text-white font-semibold">{topSupplier?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Negotiated Total</span>
-                  <span className="text-white font-semibold">{fmt(negotiatedTotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Risk Score</span>
-                  <span className="text-green-400 font-semibold">
-                    {topSupplier?.risk_score ?? 18} / 100 (Low)
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-gray-700/50 pt-2">
-                  <span className="text-gray-400">Negotiated Savings</span>
-                  <span className="text-yellow-400 font-semibold flex items-center gap-1">
+              <div className="rounded-lg p-4 space-y-2.5 text-sm mb-4" style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}>
+                {[
+                  { label: 'Supplier', value: topSupplier?.name, color: 'var(--brand-text)' },
+                  { label: 'Negotiated Total', value: fmt(negotiatedTotal), color: 'var(--brand-text)' },
+                  { label: 'Risk Score', value: `${topSupplier?.risk_score ?? 18} / 100 (Low)`, color: 'var(--brand-green)' },
+                ].map(r => (
+                  <div key={r.label} className="flex justify-between">
+                    <span style={{ color: 'var(--brand-text-muted)' }}>{r.label}</span>
+                    <span className="font-semibold" style={{ color: r.color }}>{r.value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--brand-border)' }}>
+                  <span style={{ color: 'var(--brand-text-muted)' }}>Negotiated Savings</span>
+                  <span className="font-semibold flex items-center gap-0.5" style={{ color: 'var(--brand-gold)' }}>
                     <DollarSign className="w-3 h-3" />{fmt(totalSavings).replace('$', '')}
                   </span>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500 mb-5 italic">
+              <p className="text-xs italic mb-4" style={{ color: 'var(--brand-text-dim)' }}>
                 Policy gate: Value {fmt(negotiatedTotal)} exceeds {fmt(result.approval_threshold)} autonomous threshold.
-                {blocked.length > 0 && ` ${blocked.length} supplier(s) blocked for compliance issues.`}
+                {blocked.length > 0 && ` ${blocked.length} supplier(s) blocked for compliance.`}
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleApprove}
-                  className="bg-green-600 hover:bg-green-500 text-white rounded-lg py-2.5 font-bold transition-all"
-                >
+                <button onClick={handleApprove} className="py-2.5 rounded-lg font-bold text-sm transition-all"
+                  style={{ background: 'var(--brand-green)', color: 'var(--brand-carbon)' }}>
                   APPROVE
                 </button>
-                <button
-                  onClick={reset}
-                  className="bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 rounded-lg py-2.5 font-bold transition-all"
-                >
+                <button onClick={reset} className="py-2.5 rounded-lg font-bold text-sm transition-all"
+                  style={{ background: 'var(--brand-surface-light)', border: '1px solid var(--brand-border)', color: 'var(--brand-text-muted)' }}>
                   REJECT
                 </button>
               </div>
             </div>
           ) : phase === 'approved' ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-green-900/10 rounded-xl border border-green-800/30">
-              <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
-              <h3 className="text-lg font-bold text-white">Approved</h3>
-              <p className="text-sm text-gray-500 mt-1">Simulated UiPath Maestro execution triggered</p>
-              <p className="text-xs text-gray-600 mt-3">
-                In production: UiPath Robot generates PO in SAP ERP
-              </p>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 rounded-xl"
+              style={{ background: 'rgba(141,197,74,0.06)', border: '1px solid rgba(141,197,74,0.15)' }}>
+              <CheckCircle className="w-10 h-10 mb-3" style={{ color: 'var(--brand-green)' }} />
+              <h3 className="font-bold" style={{ color: 'var(--brand-text)' }}>Approved</h3>
+              <p className="text-xs mt-1" style={{ color: 'var(--brand-text-muted)' }}>Simulated UiPath Maestro execution triggered</p>
+              <p className="text-xs mt-2" style={{ color: 'var(--brand-text-dim)' }}>In production: UiPath Robot generates PO in SAP ERP</p>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-gray-800/20 rounded-xl border border-gray-800/50">
-              <FileText className="w-10 h-10 text-gray-600 mb-3" />
-              <p className="text-gray-500">No actions required.</p>
-              <p className="text-sm text-gray-600 mt-1">
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 rounded-xl"
+              style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}>
+              <FileText className="w-8 h-8 mb-3" style={{ color: 'var(--brand-text-dim)' }} />
+              <p style={{ color: 'var(--brand-text-muted)' }}>No actions required.</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--brand-text-dim)' }}>
                 {phase === 'loading' ? 'Agents are working…' : 'Agents are handling routine tasks.'}
               </p>
             </div>
@@ -446,18 +408,16 @@ export default function CommandCenter() {
         </div>
       </div>
 
-      {/* ── Live Execution Trace ──────────────────────────────────────────── */}
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
+      {/* ── Live Execution Trace ───────────────────────────────────────────── */}
+      <div className="sg-card">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">
-            Live Execution Trace
-          </h2>
+          <h2 className="text-sm font-bold" style={{ color: 'var(--brand-text)' }}>Live Execution Trace</h2>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">
+            <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>
               {result ? `${visibleTrace.length} / ${result.execution_trace.length} events` : 'Awaiting run…'}
             </span>
             {result && (
-              <span className="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded">
+              <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--brand-surface-light)', border: '1px solid var(--brand-border)', color: 'var(--brand-text-dim)' }}>
                 Real tool call data from backend
               </span>
             )}
@@ -465,20 +425,21 @@ export default function CommandCenter() {
         </div>
         <div
           ref={traceRef}
-          className="bg-gray-950 rounded-xl p-4 h-52 overflow-y-auto font-mono text-xs space-y-1.5 border border-gray-800"
+          className="rounded-xl p-4 h-52 overflow-y-auto font-mono text-xs space-y-1.5"
+          style={{ background: 'var(--brand-carbon)', border: '1px solid var(--brand-border)' }}
         >
           {!result && phase !== 'loading' && (
-            <div className="flex gap-4 text-gray-600">
-              <span className="text-gray-700">--:--:--</span>
-              <span className="text-blue-400 w-36">System</span>
+            <div className="flex gap-4" style={{ color: 'var(--brand-text-dim)' }}>
+              <span style={{ color: 'var(--brand-border-light)' }}>--:--:--</span>
+              <span style={{ color: 'var(--brand-gold)', width: 144 }}>System</span>
               <span>Awaiting procurement request…</span>
             </div>
           )}
           {phase === 'loading' && (
             <div className="flex gap-4">
-              <span className="text-gray-700">…</span>
-              <span className="text-blue-400 w-36 animate-pulse">Strands SDK</span>
-              <span className="text-gray-400">Executing agent workflow on backend…</span>
+              <span style={{ color: 'var(--brand-border-light)' }}>…</span>
+              <span className="animate-pulse" style={{ color: 'var(--brand-gold)', width: 144 }}>Strands SDK</span>
+              <span style={{ color: 'var(--brand-text-muted)' }}>Executing agent workflow on backend…</span>
             </div>
           )}
           {visibleTrace.map((event, i) => {
@@ -487,15 +448,12 @@ export default function CommandCenter() {
             const isGate = event.action === 'policy_gate' || event.action === 'gate_evaluated'
             const isResult = event.action === 'tool_result'
             return (
-              <div key={i} className={`flex gap-3 ${i === visibleTrace.length - 1 ? 'opacity-100' : 'opacity-90'}`}>
-                <span className="text-gray-700 shrink-0">{ts}</span>
-                <span className={`w-40 shrink-0 font-semibold ${agentColor(event.agent)}`}>{event.agent}</span>
-                <span className={
-                  isToolCall ? 'text-gray-300' :
-                  isGate ? 'text-yellow-400' :
-                  isResult ? 'text-gray-200' :
-                  'text-gray-500'
-                }>
+              <div key={i} className="flex gap-3">
+                <span style={{ color: 'var(--brand-text-dim)', flexShrink: 0 }}>{ts}</span>
+                <span className="shrink-0 font-semibold" style={{ color: agentColor(event.agent), width: 160 }}>{event.agent}</span>
+                <span style={{
+                  color: isGate ? 'var(--brand-amber)' : isToolCall || isResult ? 'var(--brand-text)' : 'var(--brand-text-muted)'
+                }}>
                   {isToolCall && event.tool_name ? `[Tool: ${event.tool_name}] ` : ''}
                   {event.detail}
                 </span>
@@ -504,9 +462,9 @@ export default function CommandCenter() {
           })}
           {phase === 'approved' && (
             <div className="flex gap-3">
-              <span className="text-gray-700">{new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
-              <span className="text-indigo-400 w-40 shrink-0 font-semibold">UiPath Maestro</span>
-              <span className="text-indigo-300">[Simulated] PO generation workflow triggered in ERP</span>
+              <span style={{ color: 'var(--brand-text-dim)', flexShrink: 0 }}>{new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
+              <span className="shrink-0 font-semibold" style={{ color: '#818CF8', width: 160 }}>UiPath Maestro</span>
+              <span style={{ color: '#A5B4FC' }}>[Simulated] PO generation workflow triggered in ERP</span>
             </div>
           )}
         </div>
