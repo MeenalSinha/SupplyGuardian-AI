@@ -2,44 +2,43 @@
 
 import { useState } from 'react'
 import { MoreHorizontal, Download, Info, LayoutGrid, SlidersHorizontal, ChevronDown } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 
 const kpiData = [
-  { metric: 'Total Inventory Value', value: '$1,248,920', change: '+5.4%', status: 'Healthy', positive: true },
-  { metric: 'Units In Stock', value: '48,920', change: '+2.1%', status: 'Stable', positive: true },
-  { metric: 'Incoming Stock (Week)', value: '12,480', change: '+8.2%', status: 'High', positive: true },
-  { metric: 'Active Suppliers', value: '128', change: '+3.6%', status: 'Stable', positive: true },
-  { metric: 'On-Time Delivery', value: '92.6%', change: '+4.7%', status: 'Healthy', positive: true },
+  { metric: 'Total Savings (YTD)',      value: '$376,200',  change: '+18.4%', status: 'Healthy',  positive: true },
+  { metric: 'Active Suppliers',          value: '128',       change: '+3.6%',  status: 'Stable',   positive: true },
+  { metric: 'POs Processed (Month)',     value: '183',       change: '+22.1%', status: 'High',     positive: true },
+  { metric: 'Compliance Rate',           value: '94.2%',     change: '+1.8%',  status: 'Healthy',  positive: true },
+  { metric: 'On-Time Delivery',          value: '92.6%',     change: '+4.7%',  status: 'Healthy',  positive: true },
 ]
 
-const inventoryData = [
-  { name: 'Warehouse A', value: 56, color: '#C9A84C' },
-  { name: 'Warehouse B', value: 26, color: '#7CB84A' },
-  { name: 'Retail Store', value: 11, color: '#4A8CD4' },
-  { name: 'In Transit', value: 7, color: '#6B6758' },
+const spendData = [
+  { name: 'Electronics',    value: 42, color: '#C9A84C' },
+  { name: 'Raw Materials',  value: 28, color: '#8DC54A' },
+  { name: 'Logistics',      value: 18, color: '#4A8CD4' },
+  { name: 'Other',          value: 12, color: '#6B6758' },
 ]
 
-const salesGoalBars = Array.from({ length: 30 }, (_, i) => ({
+const savingsGoalBars = Array.from({ length: 30 }, (_, i) => ({
   filled: i < 19,
   active: i === 18,
 }))
 
 export default function MarchReport() {
   const [movementType, setMovementType] = useState('All')
-  const [warehouse, setWarehouse] = useState('All')
+  const [region, setRegion] = useState('All')
   const [category, setCategory] = useState('All')
 
   return (
     <div>
       {/* Section header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold" style={{ color: 'var(--brand-text)' }}>March Report</h2>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--brand-text)' }}>Procurement Report — March 2026</h2>
         <div className="flex items-center gap-2">
-          {/* Filters */}
           {[
-            { label: 'Movement Type', val: movementType, set: setMovementType },
-            { label: 'Warehouse', val: warehouse, set: setWarehouse },
-            { label: 'Category', val: category, set: setCategory },
+            { label: 'Status', val: movementType, set: setMovementType },
+            { label: 'Region',  val: region,       set: setRegion },
+            { label: 'Category', val: category,    set: setCategory },
           ].map((f) => (
             <button
               key={f.label}
@@ -63,7 +62,7 @@ export default function MarchReport() {
       </div>
 
       <div className="grid grid-cols-3 gap-4 items-start">
-        {/* Overview KPI Table */}
+        {/* KPI Table */}
         <div className="sg-card">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -83,7 +82,7 @@ export default function MarchReport() {
             <thead>
               <tr>
                 <th>Metric</th>
-                <th>Current Value</th>
+                <th>Value</th>
                 <th>Change</th>
                 <th>Status</th>
               </tr>
@@ -107,18 +106,16 @@ export default function MarchReport() {
           </table>
         </div>
 
-        {/* Monthly Sales Goal */}
+        {/* Monthly Savings Target */}
         <div className="sg-card">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-sm font-semibold" style={{ color: 'var(--brand-text)' }}>Monthly Sales Goal</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--brand-text)' }}>Monthly Savings Target</div>
             <button style={{ color: 'var(--brand-text-dim)' }}><MoreHorizontal size={14} /></button>
           </div>
           <div className="text-xs mb-4" style={{ color: 'var(--brand-text-dim)' }}>Target: $150,000</div>
           <div className="text-4xl font-black mb-3" style={{ color: 'var(--brand-text)' }}>63%</div>
-
-          {/* Progress bars visualization */}
           <div className="flex gap-0.5 flex-wrap mb-4">
-            {salesGoalBars.map((bar, i) => (
+            {savingsGoalBars.map((bar, i) => (
               <div
                 key={i}
                 style={{
@@ -134,51 +131,50 @@ export default function MarchReport() {
               />
             ))}
           </div>
-
           <p className="text-xs" style={{ color: 'var(--brand-text-muted)' }}>
-            Keep pushing! Just $60,000 left to hit your goal.
+            Keep pushing! Just $55,500 left to hit your target.
           </p>
-          <p className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Every sale counts!</p>
+          <p className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Every negotiation counts!</p>
         </div>
 
-        {/* Inventory Distribution */}
+        {/* Supplier Spend Distribution */}
         <div className="sg-card">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--brand-text)' }}>Inventory Distribution Overview</div>
-              <div className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Distribution of Stocks</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--brand-text)' }}>Supplier Spend Distribution</div>
+              <div className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>By Category</div>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              {inventoryData.map((item) => (
+              {spendData.map((item) => (
                 <div key={item.name} className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                  <span className="text-xs" style={{ color: 'var(--brand-text-muted)' }}>{item.name} - {item.value}%</span>
+                  <span className="text-xs" style={{ color: 'var(--brand-text-muted)' }}>{item.name} — {item.value}%</span>
                 </div>
               ))}
             </div>
-            <div className="relative" style={{ width: 100, height: 100 }}>
-              <ResponsiveContainer width={100} height={100}>
+            <div className="relative" style={{ width: 110, height: 110 }}>
+              <ResponsiveContainer width={110} height={110}>
                 <PieChart>
                   <Pie
-                    data={inventoryData}
-                    cx={45}
-                    cy={45}
-                    innerRadius={30}
-                    outerRadius={45}
+                    data={spendData}
+                    cx={50}
+                    cy={50}
+                    innerRadius={32}
+                    outerRadius={50}
                     dataKey="value"
                     strokeWidth={0}
                   >
-                    {inventoryData.map((entry, i) => (
+                    {spendData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-sm font-bold" style={{ color: 'var(--brand-text)' }}>48,920</div>
-                <div className="text-xs" style={{ color: 'var(--brand-text-dim)', fontSize: '9px' }}>Units Total</div>
+                <div className="text-sm font-bold" style={{ color: 'var(--brand-text)' }}>$1.82M</div>
+                <div style={{ color: 'var(--brand-text-dim)', fontSize: '9px' }}>Total Spend</div>
               </div>
             </div>
           </div>

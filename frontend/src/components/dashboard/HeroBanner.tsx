@@ -1,89 +1,76 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, Package, Truck } from 'lucide-react'
+import { TrendingUp, ArrowUpRight, ShieldCheck, Zap } from 'lucide-react'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
+  BarChart, Bar, XAxis, ResponsiveContainer, Cell
 } from 'recharts'
 
-const salesData = [
-  { month: 'Dec', value: 52 },
-  { month: 'Jan', value: 68 },
+const savingsData = [
+  { month: 'Oct', value: 38 },
+  { month: 'Nov', value: 55 },
+  { month: 'Dec', value: 49 },
+  { month: 'Jan', value: 72 },
   { month: 'Feb', value: 61 },
   { month: 'Mar', value: 94 },
-  { month: 'Apr', value: 72, dim: true },
-  { month: 'May', value: 58, dim: true },
 ]
 
 type TabKey = 'Today' | 'Week' | 'Month'
 
-const stockData: Record<TabKey, { units: string; usd: string; shipments: string; unitsDelta: string; usdDelta: string; shipDelta: string }> = {
-  Today: { units: '2,480', usd: '8,900', shipments: '24', unitsDelta: '+6.2%', usdDelta: '+4.6%', shipDelta: '+8.9%' },
-  Week: { units: '17,340', usd: '62,300', shipments: '168', unitsDelta: '+3.1%', usdDelta: '+2.8%', shipDelta: '+5.2%' },
-  Month: { units: '74,200', usd: '248,900', shipments: '720', unitsDelta: '+8.2%', usdDelta: '+6.4%', shipDelta: '+9.1%' },
+const procurementData: Record<TabKey, { cases: string; spend: string; approvals: string; casesDelta: string; spendDelta: string; approvalsDelta: string }> = {
+  Today:  { cases: '12',      spend: '94K',    approvals: '3',  casesDelta: '+2',    spendDelta: '+8.4%', approvalsDelta: '+1' },
+  Week:   { cases: '47',      spend: '485K',   approvals: '11', casesDelta: '+14%',  spendDelta: '+6.1%', approvalsDelta: '+4' },
+  Month:  { cases: '183',     spend: '1.82M',  approvals: '38', casesDelta: '+22%',  spendDelta: '+11.3%', approvalsDelta: '+9' },
 }
 
 export default function HeroBanner() {
   const [activeTab, setActiveTab] = useState<TabKey>('Today')
-  const stock = stockData[activeTab]
+  const data = procurementData[activeTab]
 
   return (
     <div className="relative overflow-hidden rounded-2xl" style={{ height: '360px' }}>
-      {/* Background image simulation with gradient */}
-      <div className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(135deg, #2C2518 0%, #1A1510 40%, #0E0C08 100%)',
-        }}
+      {/* Real photo background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/hero-conveyor.jpg')" }}
       />
-      {/* Decorative conveyor belt visual */}
-      <div className="absolute right-0 top-0 bottom-0 w-2/3"
-        style={{
-          background: 'linear-gradient(90deg, #1A1510 0%, transparent 30%)',
-          zIndex: 2,
-        }}
-      />
-      <div className="absolute right-0 top-0 bottom-0 w-[55%] overflow-hidden">
-        <div className="w-full h-full opacity-40"
-          style={{
-            background: 'repeating-linear-gradient(0deg, rgba(201,168,76,0.05) 0px, rgba(201,168,76,0.05) 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, rgba(201,168,76,0.03) 0px, rgba(201,168,76,0.03) 1px, transparent 1px, transparent 40px)',
-          }}
-        />
-      </div>
+      {/* Dark gradient overlay — heavy left, fades right */}
+      <div className="absolute inset-0" style={{
+        background: 'linear-gradient(90deg, rgba(18,14,8,0.97) 0%, rgba(18,14,8,0.82) 38%, rgba(18,14,8,0.35) 65%, rgba(18,14,8,0.1) 100%)'
+      }} />
 
-      {/* Content overlay */}
+      {/* Content */}
       <div className="relative z-10 h-full flex flex-col justify-between p-6">
         {/* Hero text */}
         <div>
-          <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-4xl font-black leading-none tracking-tight" style={{ color: 'var(--brand-text)' }}>
-              OWN
-              <br />
-              THE OUTCOME
+          <div className="flex items-center gap-3 mb-3">
+            <h1 className="font-black leading-none tracking-tight" style={{ color: 'var(--brand-text)', fontSize: '46px', lineHeight: 1.05 }}>
+              OWN<br />THE OUTCOME
             </h1>
           </div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="chip chip-gold text-xs">AI-Powered Platform</span>
+            <span className="chip chip-gold" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>AI-Powered Platform</span>
           </div>
           <p className="text-sm max-w-xs leading-relaxed" style={{ color: 'var(--brand-text-muted)' }}>
-            Autonomous procurement, intelligent suppliers, resilient supply chains.
+            Autonomous procurement, intelligent<br />suppliers, resilient supply chains.
           </p>
         </div>
 
-        {/* Sales Chart */}
-        <div className="sg-card" style={{ padding: '14px', maxWidth: '220px', background: 'rgba(30,28,24,0.9)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Sales Increase</span>
-            <TrendingUp size={12} style={{ color: 'var(--brand-text-dim)' }} />
+        {/* Savings Trend Chart card */}
+        <div className="rounded-xl" style={{ padding: '14px', maxWidth: '230px', background: 'rgba(22,18,10,0.92)', border: '1px solid rgba(201,168,76,0.15)' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Savings Trend</span>
+            <ArrowUpRight size={11} style={{ color: 'var(--brand-text-dim)' }} />
           </div>
-          <div className="chip chip-green text-xs mb-3">+26%</div>
+          <div className="chip chip-green mb-2" style={{ fontSize: '11px' }}>+$24.5K this run</div>
           <ResponsiveContainer width="100%" height={60}>
-            <BarChart data={salesData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <BarChart data={savingsData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'var(--brand-text-dim)' }} axisLine={false} tickLine={false} />
               <Bar dataKey="value" radius={[2, 2, 0, 0]}>
-                {salesData.map((entry, index) => (
+                {savingsData.map((entry, index) => (
                   <Cell
                     key={index}
-                    fill={entry.month === 'Mar' ? 'var(--brand-gold)' : entry.dim ? 'var(--brand-border)' : '#4A4535'}
+                    fill={entry.month === 'Mar' ? '#C9A84C' : '#4A4535'}
                   />
                 ))}
               </Bar>
@@ -92,89 +79,96 @@ export default function HeroBanner() {
         </div>
       </div>
 
-      {/* Right side stats panel */}
-      <div className="absolute top-4 right-4 z-10 space-y-3">
-        {/* Incoming Stock card */}
-        <div className="rounded-xl p-4 min-w-[260px]" style={{ background: 'rgba(30,28,24,0.95)', border: '1px solid var(--brand-border)' }}>
+      {/* Right-side stats panel */}
+      <div className="absolute top-4 right-4 z-10 space-y-3" style={{ minWidth: '290px' }}>
+        {/* Active Procurements */}
+        <div className="rounded-xl p-4" style={{ background: 'rgba(22,18,10,0.92)', border: '1px solid rgba(201,168,76,0.18)' }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Incoming Stock</span>
-            <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>(This Week)</span>
+            <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Active Procurements</span>
+            <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>(This {activeTab})</span>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-5 mb-3">
             <div>
-              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{stock.units}</div>
+              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{data.cases}</div>
               <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Units</span>
-                <span className="text-xs font-semibold" style={{ color: 'var(--brand-green)' }}>{stock.unitsDelta}</span>
+                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Cases</span>
+                <span className="text-xs font-semibold" style={{ color: '#8DC54A' }}>{data.casesDelta}</span>
               </div>
             </div>
             <div>
-              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{stock.usd}</div>
+              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{data.spend}</div>
               <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>USD</span>
-                <span className="text-xs font-semibold" style={{ color: 'var(--brand-green)' }}>{stock.usdDelta}</span>
+                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Spend</span>
+                <span className="text-xs font-semibold" style={{ color: '#8DC54A' }}>{data.spendDelta}</span>
               </div>
             </div>
             <div>
-              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{stock.shipments}</div>
+              <div className="text-xl font-bold leading-none" style={{ color: 'var(--brand-text)' }}>{data.approvals}</div>
               <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Shipments</span>
-                <span className="text-xs font-semibold" style={{ color: 'var(--brand-green)' }}>{stock.shipDelta}</span>
+                <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Approvals</span>
+                <span className="text-xs font-semibold" style={{ color: '#8DC54A' }}>{data.approvalsDelta}</span>
               </div>
             </div>
           </div>
           {/* Tabs */}
-          <div className="flex gap-1 mt-3">
+          <div className="flex gap-1 items-center">
             {(['Today', 'Week', 'Month'] as TabKey[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className="px-3 py-1 rounded-full text-xs font-medium transition-all"
                 style={{
-                  background: activeTab === tab ? 'var(--brand-surface-light)' : 'transparent',
+                  background: activeTab === tab ? 'rgba(255,255,255,0.12)' : 'transparent',
                   color: activeTab === tab ? 'var(--brand-text)' : 'var(--brand-text-dim)',
-                  border: activeTab === tab ? '1px solid var(--brand-border-light)' : '1px solid transparent',
+                  border: activeTab === tab ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
                 }}
               >
                 {tab}
               </button>
             ))}
-            <button className="ml-auto px-3 py-1 rounded-full text-xs font-semibold transition-all"
-              style={{ background: 'var(--brand-gold)', color: 'var(--brand-carbon)' }}>
-              View Details
+            <button
+              className="ml-auto flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+              style={{ background: 'var(--brand-gold)', color: '#111010' }}
+            >
+              View Details <ArrowUpRight size={10} />
             </button>
           </div>
         </div>
 
-        {/* Mini stat cards row */}
+        {/* Mini stat cards */}
         <div className="flex gap-3">
-          <div className="rounded-xl p-3 flex-1" style={{ background: 'rgba(30,28,24,0.95)', border: '1px solid var(--brand-border)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Warehouse Load</span>
-              <Package size={11} style={{ color: 'var(--brand-text-dim)' }} />
+          {/* Agent Pipeline */}
+          <div className="rounded-xl p-3 flex-1" style={{ background: 'rgba(22,18,10,0.92)', border: '1px solid rgba(201,168,76,0.18)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Agent Pipeline</span>
+              <ArrowUpRight size={11} style={{ color: 'var(--brand-text-dim)' }} />
             </div>
-            <div className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Warehouse No. 4</div>
-            <div className="text-2xl font-bold mt-1" style={{ color: 'var(--brand-text)' }}>65%</div>
-            <div className="text-xs mb-1" style={{ color: 'var(--brand-text-dim)' }}>Load</div>
-            <div className="progress-bar">
-              <div className="progress-bar-fill green" style={{ width: '65%' }} />
+            <div className="text-xs mb-1" style={{ color: 'var(--brand-text-dim)' }}>Automation Rate</div>
+            <div className="text-2xl font-bold" style={{ color: 'var(--brand-text)' }}>94%</div>
+            <div className="text-xs mb-1.5" style={{ color: 'var(--brand-text-dim)' }}>Tasks automated</div>
+            <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <div className="h-full rounded-full" style={{ width: '94%', background: '#8DC54A' }} />
             </div>
           </div>
 
-          <div className="rounded-xl p-3 flex-1" style={{ background: 'rgba(30,28,24,0.95)', border: '1px solid var(--brand-border)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Write-Offs</span>
-              <Truck size={11} style={{ color: 'var(--brand-text-dim)' }} />
+          {/* Risk Flags */}
+          <div className="rounded-xl p-3 flex-1" style={{ background: 'rgba(22,18,10,0.92)', border: '1px solid rgba(201,168,76,0.18)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--brand-text)' }}>Risk Flags</span>
+              <ArrowUpRight size={11} style={{ color: 'var(--brand-text-dim)' }} />
             </div>
             <div className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>(Last 2 Weeks)</div>
-            <div className="text-2xl font-bold mt-1" style={{ color: 'var(--brand-text)' }}>1,240</div>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Units</span>
-              <span className="text-xs font-semibold" style={{ color: 'var(--brand-red)' }}>-2.3%</span>
+            <div className="text-2xl font-bold mt-1" style={{ color: 'var(--brand-text)' }}>7</div>
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-xs" style={{ color: 'var(--brand-text-dim)' }}>Suppliers</span>
+              <span className="text-xs font-semibold" style={{ color: 'var(--brand-red)' }}>2 Critical</span>
             </div>
-            <div className="flex items-end gap-0.5 h-5 mt-1">
-              {[3, 5, 4, 7, 5, 8, 6, 9, 7, 8, 5, 6].map((v, i) => (
-                <div key={i} className="flex-1 rounded-sm" style={{ height: `${v * 2}px`, background: i > 9 ? 'var(--brand-gold)' : 'var(--brand-border)' }} />
+            <div className="flex items-end gap-px h-4">
+              {[2,4,3,6,4,7,5,8,6,7,4,5].map((v, i) => (
+                <div key={i} className="flex-1 rounded-sm" style={{
+                  height: `${v * 2}px`,
+                  background: i > 9 ? '#D45A4A' : 'rgba(255,255,255,0.12)'
+                }} />
               ))}
             </div>
           </div>

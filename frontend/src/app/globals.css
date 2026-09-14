@@ -8,16 +8,19 @@
   --brand-gold: #C9A84C;
   --brand-gold-light: #E8C96A;
   --brand-gold-dark: #A08030;
-  --brand-carbon: #111010;
-  --brand-carbon-light: #1A1917;
-  --brand-surface: #1E1C18;
-  --brand-surface-light: #272420;
-  --brand-border: #333128;
+  --brand-carbon: #120E08;
+  --brand-carbon-light: #1A1510;
+  --brand-surface: #1E1A12;
+  --brand-surface-light: #252018;
+  --brand-border: #32291A;
+  --brand-border-light: #4A3F28;
   --brand-text: #F5F2E8;
-  --brand-text-muted: #9A9580;
-  --brand-green: #7CB84A;
+  --brand-text-muted: #8A8472;
+  --brand-text-dim: #5A5448;
+  --brand-green: #8DC54A;
   --brand-red: #D45A4A;
   --brand-amber: #D4924A;
+  --brand-blue: #4A8CD4;
 }
 
 * {

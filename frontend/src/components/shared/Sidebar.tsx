@@ -114,11 +114,28 @@ export default function Sidebar() {
             </span>
             <Activity size={11} style={{ color: 'var(--brand-text-dim)' }} />
           </div>
-          <div className="flex items-end gap-0.5 h-6 mb-1.5">
-            {[40,55,48,62,58,70,65,80,75,88,82,92].map((v,i) => (
-              <div key={i} className="flex-1 rounded-sm"
-                style={{ height: `${(v/100)*24}px`, background: i===11 ? 'var(--brand-gold)' : 'var(--brand-border)' }} />
-            ))}
+          {/* Sparkline wave */}
+          <div className="mb-1.5" style={{ height: '28px' }}>
+            <svg width="100%" height="28" viewBox="0 0 160 28" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#8DC54A" stopOpacity="0.4"/>
+                  <stop offset="100%" stopColor="#8DC54A" stopOpacity="0.05"/>
+                </linearGradient>
+              </defs>
+              <path
+                d="M0,22 C10,20 15,18 25,14 C35,10 40,16 50,12 C60,8 65,15 75,10 C85,5 90,12 100,8 C110,4 120,10 130,6 C140,2 150,7 160,4"
+                fill="none"
+                stroke="#8DC54A"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M0,22 C10,20 15,18 25,14 C35,10 40,16 50,12 C60,8 65,15 75,10 C85,5 90,12 100,8 C110,4 120,10 130,6 C140,2 150,7 160,4 L160,28 L0,28 Z"
+                fill="url(#sparkGrad)"
+              />
+            </svg>
           </div>
           <div className="flex items-center justify-between">
             <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--brand-green)' }}>Healthy</span>
@@ -131,3 +148,4 @@ export default function Sidebar() {
     </aside>
   )
 }
+

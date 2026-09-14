@@ -35,9 +35,10 @@ export default function TopNav({ activeTab = 'Home' }: { activeTab?: string }) {
             href={link.href}
             className="px-4 py-1.5 rounded-full text-sm font-medium transition-all"
             style={{
-              background: activeTab === link.label ? 'var(--brand-surface-light)' : 'transparent',
+              background: activeTab === link.label ? 'rgba(245,242,232,0.12)' : 'transparent',
               color: activeTab === link.label ? 'var(--brand-text)' : 'var(--brand-text-muted)',
-              border: activeTab === link.label ? '1px solid var(--brand-border-light)' : '1px solid transparent',
+              border: activeTab === link.label ? '1px solid rgba(245,242,232,0.18)' : '1px solid transparent',
+              backdropFilter: activeTab === link.label ? 'blur(8px)' : 'none',
             }}
           >
             {link.label}
