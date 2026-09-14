@@ -28,12 +28,18 @@ async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     logger.info("SupplyGuardian AI starting up", version="1.0.0")
     # Initialize DB tables (in production use alembic)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database initialized")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.warning("Could not connect to database. Running in pure agent demo mode.", error=str(e))
     yield
     logger.info("SupplyGuardian AI shutting down")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 app = FastAPI(
